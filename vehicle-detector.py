@@ -25,8 +25,10 @@ print(nomesDasClasses)
 cores = numpy.random.uniform(0, 255, size=(len(nomesDasClasses), 3))
 
 # Model Files
-configuracaoDosModelos = "yolov3-tiny.cfg"
-pesosDosModelos = "yolov3-tiny.weights"
+# configuracaoDosModelos = "yolov4.cfg"
+# pesosDosModelos = "yolov4.weights"
+configuracaoDosModelos = "yolov4-tiny.cfg"
+pesosDosModelos = "yolov4-tiny.weights"
 
 net = cv2.dnn.readNetFromDarknet(configuracaoDosModelos, pesosDosModelos)
 # OpenCV como Backend. Não CPU
@@ -43,7 +45,7 @@ def encontrarVeiculos(saidas, frame):
 
     for saida in saidas:
         for resultados in saida:
-            # Pagar os cinco primeiros valores da analise da rede. (cx, cy, w, h, confianca da classe)
+            # Pagar os cinco primeiros valores da analise da rede. (cx, cy, largura, altura, confianca da classe)
             scores = resultados[5:]
             # Pegar a classificacao
             idDaClasse = numpy.argmax(scores)
