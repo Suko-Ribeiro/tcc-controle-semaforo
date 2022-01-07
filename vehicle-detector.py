@@ -5,14 +5,16 @@ import numpy
 video = cv2.VideoCapture('bejamin.mkv')
 # video = cv2.VideoCapture('santo-antonio.avi')
 
-
 # constantes
-whT = 320
-limiarDeConfianca = 0.3         # em porcentagem
+fps = video.get(cv2.CAP_PROP_FPS)
+whT = 416
+limiarDeConfianca = 0.4         # em porcentagem
 limiarDeSupressaoMaxima = 0.1   # em porcentagem
 # limiarDeConfianca = 0.4         # em porcentagem
 # limiarDeSupressaoMaxima = 0.15  # em porcentagem
 
+buffer = []
+carros = 0
 
 # carregamento das classes
 arquivoDeClasses = "coco.names"
@@ -36,7 +38,7 @@ net.setPreferableBackend(cv2.dnn. DNN_BACKEND_DEFAULT)
 net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 
 
-def encontrarVeiculos(saidas, frame):
+def encontrarVeiculos(saidas, frame, carros):
     altura, largura, cT = frame.shape
 
     caixas = []
@@ -68,19 +70,31 @@ def encontrarVeiculos(saidas, frame):
     # evitar varias caixas. Supressao Maxima
     indices = cv2.dnn.NMSBoxes(
         caixas, confiabilidade, limiarDeConfianca, limiarDeSupressaoMaxima)
-    print(len(indices))
+
+    buffer.append(len(indices))
+
+    if (len(buffer) >= 30):
+        mediaDeCarros = numpy.mean(buffer)
+        carros = round(mediaDeCarros)
+        buffer.clear()
 
     # Criação das caixas
-    for i in indices:
-        i = i[0]
+    for indice in indices:
+        i = indice[0]
         if nomesDasClasses[idsDasClasses[i]] in ['car', 'motorcycle', 'bus', 'truck', 'bicycle']:
             caixa = caixas[i]
+            # Pega dimensões da caixa
             x, y, largura, altura = caixa[0], caixa[1], caixa[2], caixa[3]
-            # print(x,y,w,h)
+
+            # Coloca caixa no carro
             cv2.rectangle(frame, (x, y), (x+largura, y+altura),
                           cores[idsDasClasses[i]], 2)
+
+            # Coloca nome e taxa de confiabilidade no carro
             cv2.putText(frame, f'{nomesDasClasses[idsDasClasses[i]].upper()} {int(confiabilidade[i]*100)}%',
                         (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, cores[idsDasClasses[i]], 2)
+
+    return carros
 
 
 while True:
@@ -101,7 +115,10 @@ while True:
 
     # Saida das camadas da rede com a confianca predita
     saidas = net.forward(nomesDeSaida)
-    encontrarVeiculos(saidas, regiaoDeInteresse)
+    carros = encontrarVeiculos(saidas, regiaoDeInteresse, carros)
+
+    cv2.putText(regiaoDeInteresse, str(carros), (10, 30),
+                cv2.FONT_HERSHEY_DUPLEX, 1, (0, 255, 0))
 
     # Mostrar vídeo
     cv2.imshow('Image', regiaoDeInteresse)
